@@ -161,6 +161,35 @@ dafür in `vite.config.js` einen Proxy für `/api` auf `http://localhost:8000`
 ergänzen, oder direkt mit der gebauten Docker-Variante testen, dort ist das
 schon per nginx gelöst.
 
+## Updates einspielen
+
+Der `backend`-Container migriert seine SQLite-Datenbank beim Start automatisch,
+wenn neue Spalten zu bestehenden Tabellen hinzukommen (additive Migrationen,
+siehe `backend/app/database.py`). Deine Daten bleiben dabei erhalten. Update-Ablauf:
+
+```bash
+git pull   # oder: aktualisierte Dateien hochladen
+docker compose up -d --build
+```
+
+Falls doch mal etwas schiefgeht (z. B. weil sich die DB-Struktur stärker
+geändert hat als eine einfache neue Spalte), findest du die Fehlermeldung im
+Backend-Log:
+
+```bash
+docker logs labor-dashboard-backend
+```
+
+Und als letzter Ausweg, falls du wirklich neu anfangen willst: das Datenvolume
+löschen (**Achtung: löscht alle Einträge!** — vorher unter Einstellungen →
+Daten exportieren):
+
+```bash
+docker compose down
+docker volume rm lab-dashboard_labor-data   # Name ggf. mit `docker volume ls` prüfen
+docker compose up -d --build
+```
+
 ## Nächste Schritte (Vorschlag)
 
 1. Ersten echten Befund eintragen und schauen, ob Kategorien/Parameter passen.
