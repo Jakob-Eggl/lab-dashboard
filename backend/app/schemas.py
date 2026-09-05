@@ -54,19 +54,23 @@ class ParameterOut(BaseModel):
     reference_high: Optional[float] = None
     default_low: Optional[float] = None
     default_high: Optional[float] = None
+    default_unit: str
     is_custom_range: bool = False
+    is_custom_unit: bool = False
     computed: bool = False
 
 
 class ParameterOverrideIn(BaseModel):
     low: Optional[float] = None
     high: Optional[float] = None
+    unit: Optional[str] = None
 
 
 class ParameterOverrideOut(BaseModel):
     parameter_code: str
     low: Optional[float] = None
     high: Optional[float] = None
+    unit: Optional[str] = None
 
 
 class DashboardItem(BaseModel):

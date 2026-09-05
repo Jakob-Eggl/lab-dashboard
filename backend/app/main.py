@@ -58,17 +58,21 @@ def _param_out(code: str, age_years: Optional[int], gender: Optional[str], sessi
     rng = resolve_range(code, age_years, gender)
     default_low = rng["low"] if rng else None
     default_high = rng["high"] if rng else None
+    default_unit = p["unit"]
 
     override = session.get(ParameterOverride, code)
-    has_override = override is not None and (override.low is not None or override.high is not None)
-    low = override.low if (has_override and override.low is not None) else default_low
-    high = override.high if (has_override and override.high is not None) else default_high
+    has_range_override = override is not None and (override.low is not None or override.high is not None)
+    has_unit_override = override is not None and bool(override.unit)
+
+    low = override.low if (has_range_override and override.low is not None) else default_low
+    high = override.high if (has_range_override and override.high is not None) else default_high
+    unit = override.unit if has_unit_override else default_unit
 
     return ParameterOut(
         code=p["code"],
         name=p["name"],
         full_name=p["full_name"],
-        unit=p["unit"],
+        unit=unit,
         category=p["category"],
         description=p["description"],
         high_meaning=p["high_meaning"],
@@ -77,7 +81,9 @@ def _param_out(code: str, age_years: Optional[int], gender: Optional[str], sessi
         reference_high=high,
         default_low=default_low,
         default_high=default_high,
-        is_custom_range=has_override,
+        default_unit=default_unit,
+        is_custom_range=has_range_override,
+        is_custom_unit=has_unit_override,
         computed=bool(p.get("computed", False)),
     )
 
@@ -148,7 +154,10 @@ def list_parameters(session: Session = Depends(get_session)):
 @app.get("/api/parameter-overrides", response_model=List[ParameterOverrideOut])
 def list_overrides(session: Session = Depends(get_session)):
     overrides = session.exec(select(ParameterOverride)).all()
-    return [ParameterOverrideOut(parameter_code=o.parameter_code, low=o.low, high=o.high) for o in overrides]
+    return [
+        ParameterOverrideOut(parameter_code=o.parameter_code, low=o.low, high=o.high, unit=o.unit)
+        for o in overrides
+    ]
 
 
 @app.put("/api/parameter-overrides/{parameter_code}", response_model=ParameterOverrideOut)
@@ -156,21 +165,28 @@ def set_override(parameter_code: str, data: ParameterOverrideIn, session: Sessio
     if parameter_code not in PARAMETERS_BY_CODE:
         raise HTTPException(404, "Unbekannter Parameter")
     override = session.get(ParameterOverride, parameter_code)
-    if data.low is None and data.high is None:
+
+    unit = data.unit.strip() if data.unit else None
+    # a unit equal to the catalog default doesn't need to be stored as an override
+    if unit and unit == PARAMETERS_BY_CODE[parameter_code]["unit"]:
+        unit = None
+
+    if data.low is None and data.high is None and unit is None:
         # nothing to store -> remove any existing override, reset to default
         if override:
             session.delete(override)
             session.commit()
-        return ParameterOverrideOut(parameter_code=parameter_code, low=None, high=None)
+        return ParameterOverrideOut(parameter_code=parameter_code, low=None, high=None, unit=None)
 
     if not override:
         override = ParameterOverride(parameter_code=parameter_code)
     override.low = data.low
     override.high = data.high
+    override.unit = unit
     session.add(override)
     session.commit()
     session.refresh(override)
-    return ParameterOverrideOut(parameter_code=override.parameter_code, low=override.low, high=override.high)
+    return ParameterOverrideOut(parameter_code=override.parameter_code, low=override.low, high=override.high, unit=override.unit)
 
 
 @app.delete("/api/parameter-overrides/{parameter_code}")
@@ -280,7 +296,7 @@ def dashboard(session: Session = Depends(get_session)):
         if not points:
             items.append(DashboardItem(
                 parameter=param_out, latest_value=None, latest_date=None,
-                unit=p["unit"], status="unknown", previous_value=None,
+                unit=param_out.unit, status="unknown", previous_value=None,
             ))
             continue
 
@@ -300,7 +316,7 @@ def dashboard(session: Session = Depends(get_session)):
             parameter=param_out,
             latest_value=latest_value,
             latest_date=latest_date,
-            unit=p["unit"],
+            unit=param_out.unit,
             status=status,
             previous_value=previous_value,
         ))
@@ -343,7 +359,8 @@ def export_data(session: Session = Depends(get_session)):
         exported_at=datetime.utcnow().isoformat(),
         settings=SettingsOut(birth_year=s.birth_year, gender=s.gender, display_name=s.display_name),
         parameter_overrides=[
-            ParameterOverrideOut(parameter_code=o.parameter_code, low=o.low, high=o.high) for o in overrides
+            ParameterOverrideOut(parameter_code=o.parameter_code, low=o.low, high=o.high, unit=o.unit)
+            for o in overrides
         ],
         entries=[
             EntryIn(
@@ -379,7 +396,9 @@ def import_data(data: ExportData, session: Session = Depends(get_session)):
 
     for o in data.parameter_overrides:
         if o.parameter_code in PARAMETERS_BY_CODE:
-            session.add(ParameterOverride(parameter_code=o.parameter_code, low=o.low, high=o.high))
+            session.add(ParameterOverride(parameter_code=o.parameter_code, low=o.low, high=o.high, unit=o.unit))
+
+    session.commit()  # persist settings + overrides even if there are no entries at all
 
     imported, skipped = 0, 0
     for entry_data in data.entries:

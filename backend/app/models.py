@@ -27,11 +27,14 @@ class Entry(SQLModel, table=True):
 
 
 class ParameterOverride(SQLModel, table=True):
-    """Lets the user override the built-in reference range for a parameter,
-    e.g. to match the exact range printed on their own lab's reports."""
+    """Lets the user override the built-in reference range and/or unit label
+    for a parameter, e.g. to match exactly what their own lab's reports say.
+    Note: changing the unit only changes the displayed label - it does NOT
+    convert already-stored values."""
     parameter_code: str = Field(primary_key=True)
     low: Optional[float] = None
     high: Optional[float] = None
+    unit: Optional[str] = None
 
 
 class Measurement(SQLModel, table=True):

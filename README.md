@@ -25,10 +25,11 @@ maßgeblich ist immer der auf deinem tatsächlichen Befund angegebene Bereich.
 - Verlaufsdiagramm pro Parameter mit eingezeichnetem Referenzbereich, sauber
   gerundeten Achsenwerten
 - Infotext je Parameter: was er ist, was erhöhte/niedrige Werte bedeuten können
-- **Referenzbereiche individuell überschreibbar** unter Einstellungen →
-  Referenzbereiche — z. B. wenn dein Labor andere Grenzwerte verwendet als
-  die hinterlegten Standardwerte. Ein "Zurücksetzen"-Button stellt den
-  Standardwert wieder her.
+- **Referenzbereiche und Einheiten individuell überschreibbar** unter
+  Einstellungen → Referenzbereiche — z. B. wenn dein Labor andere Grenzwerte
+  oder eine andere Einheit verwendet als hinterlegt. Ein "Zurücksetzen"-Button
+  stellt die Standardwerte wieder her. Hinweis: Eine geänderte Einheit ist nur
+  eine Anzeige-Beschriftung, sie rechnet bereits gespeicherte Werte nicht um.
 - Referenzbereiche alters-/geschlechtsabhängig, wo relevant (z. B. Hämoglobin,
   Ferritin, Harnsäure, Testosteron)
 - **Vollständiger Export/Import als JSON-Backup** unter Einstellungen → Daten
