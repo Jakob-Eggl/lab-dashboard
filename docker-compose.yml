@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    container_name: labor-dashboard-backend
+    restart: unless-stopped
+    environment:
+      - DATA_DIR=/data
+    volumes:
+      - labor-data:/data
+    # Not published to the host on purpose: only the frontend/nginx
+    # container talks to it, over the internal docker network.
+
+  frontend:
+    build: ./frontend
+    container_name: labor-dashboard-frontend
+    restart: unless-stopped
+    ports:
+      - "8088:80"   # change the host port (left side) if 8088 is taken
+    depends_on:
+      - backend
+
+volumes:
+  labor-data:
