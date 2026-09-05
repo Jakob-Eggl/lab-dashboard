@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
+import ReferenceRangesTab from "./ReferenceRangesTab";
+import DataTab from "./DataTab";
 
-export default function SettingsPage() {
+const TABS = [
+  { id: "profil", label: "Profil" },
+  { id: "referenz", label: "Referenzbereiche" },
+  { id: "daten", label: "Daten" },
+];
+
+function ProfileTab() {
   const [birthYear, setBirthYear] = useState("");
   const [gender, setGender] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -34,13 +42,10 @@ export default function SettingsPage() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-md">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Einstellungen</h1>
-        <p className="text-sm text-muted mt-1">
-          Geburtsjahr und Geschlecht werden nur genutzt, um passende Referenzbereiche
-          anzuzeigen (z. B. unterscheiden sich manche Werte zwischen Mann und Frau).
-        </p>
-      </div>
+      <p className="text-sm text-muted">
+        Geburtsjahr und Geschlecht werden nur genutzt, um passende Referenzbereiche
+        anzuzeigen (z. B. unterscheiden sich manche Werte zwischen Mann und Frau).
+      </p>
 
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="text-muted">Name (optional, nur zur Anzeige)</span>
@@ -90,5 +95,35 @@ export default function SettingsPage() {
         {saved && <span className="text-sm text-status-normal">Gespeichert.</span>}
       </div>
     </form>
+  );
+}
+
+export default function SettingsPage() {
+  const [tab, setTab] = useState("profil");
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">Einstellungen</h1>
+      </div>
+
+      <div className="flex gap-1 border-b border-border">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              tab === t.id ? "border-accent text-accent-dark" : "border-transparent text-muted hover:text-ink"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "profil" && <ProfileTab />}
+      {tab === "referenz" && <ReferenceRangesTab />}
+      {tab === "daten" && <DataTab />}
+    </div>
   );
 }

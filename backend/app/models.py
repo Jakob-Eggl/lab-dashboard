@@ -26,6 +26,14 @@ class Entry(SQLModel, table=True):
     )
 
 
+class ParameterOverride(SQLModel, table=True):
+    """Lets the user override the built-in reference range for a parameter,
+    e.g. to match the exact range printed on their own lab's reports."""
+    parameter_code: str = Field(primary_key=True)
+    low: Optional[float] = None
+    high: Optional[float] = None
+
+
 class Measurement(SQLModel, table=True):
     """A single measured value (e.g. GGT = 34 U/l) belonging to one entry."""
     id: Optional[int] = Field(default=None, primary_key=True)

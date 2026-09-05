@@ -31,4 +31,7 @@ export const api = {
   deleteEntry: (id) => request(`/entries/${id}`, { method: "DELETE" }),
   getSettings: () => request("/settings"),
   updateSettings: (settings) => request("/settings", { method: "PUT", body: JSON.stringify(settings) }),
+  setOverride: (code, override) => request(`/parameter-overrides/${code}`, { method: "PUT", body: JSON.stringify(override) }),
+  exportData: () => request("/export"),
+  importData: (data) => request("/import", { method: "POST", body: JSON.stringify(data) }),
 };

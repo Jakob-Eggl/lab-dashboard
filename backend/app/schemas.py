@@ -52,6 +52,21 @@ class ParameterOut(BaseModel):
     low_meaning: str
     reference_low: Optional[float] = None
     reference_high: Optional[float] = None
+    default_low: Optional[float] = None
+    default_high: Optional[float] = None
+    is_custom_range: bool = False
+    computed: bool = False
+
+
+class ParameterOverrideIn(BaseModel):
+    low: Optional[float] = None
+    high: Optional[float] = None
+
+
+class ParameterOverrideOut(BaseModel):
+    parameter_code: str
+    low: Optional[float] = None
+    high: Optional[float] = None
 
 
 class DashboardItem(BaseModel):
@@ -72,3 +87,11 @@ class HistoryPoint(BaseModel):
 class HistoryOut(BaseModel):
     parameter: ParameterOut
     points: List[HistoryPoint]
+
+
+class ExportData(BaseModel):
+    exported_at: str
+    version: int = 1
+    settings: SettingsOut
+    parameter_overrides: List[ParameterOverrideOut]
+    entries: List[EntryIn]

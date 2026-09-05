@@ -11,6 +11,41 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+// Snap a numeric range to "nice" round tick steps so the Y axis never shows
+// ugly floating point artifacts like 40.849999999999994.
+function niceDomainAndTicks(min, max) {
+  if (!isFinite(min) || !isFinite(max)) return { domain: [0, 1], ticks: [0, 1] };
+  if (min === max) {
+    min -= 1;
+    max += 1;
+  }
+  const targetTickCount = 4;
+  const rawStep = (max - min) / targetTickCount;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const residual = rawStep / magnitude;
+  let niceStep;
+  if (residual > 5) niceStep = 10 * magnitude;
+  else if (residual > 2) niceStep = 5 * magnitude;
+  else if (residual > 1) niceStep = 2 * magnitude;
+  else niceStep = magnitude;
+
+  const decimals = Math.max(0, -Math.floor(Math.log10(niceStep)));
+  const round = (v) => Number(v.toFixed(decimals + 2));
+
+  const niceMin = round(Math.floor(min / niceStep) * niceStep);
+  const niceMax = round(Math.ceil(max / niceStep) * niceStep);
+
+  const ticks = [];
+  for (let v = niceMin; v <= niceMax + niceStep / 2; v += niceStep) {
+    ticks.push(round(v));
+  }
+  return { domain: [niceMin, niceMax], ticks, decimals };
+}
+
+function formatTick(value, decimals) {
+  return value.toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: decimals });
+}
+
 export default function ParameterDetail() {
   const { code } = useParams();
   const [data, setData] = useState(null);
@@ -29,9 +64,10 @@ export default function ParameterDetail() {
 
   const hasRange = parameter.reference_low != null && parameter.reference_high != null;
   const values = points.map((p) => p.value);
-  const yMin = hasRange ? Math.min(parameter.reference_low, ...values) : Math.min(...values, 0);
-  const yMax = hasRange ? Math.max(parameter.reference_high, ...values) : Math.max(...values, 1);
-  const pad = (yMax - yMin) * 0.15 || 1;
+  const rawMin = hasRange ? Math.min(parameter.reference_low, ...values) : Math.min(...values, 0);
+  const rawMax = hasRange ? Math.max(parameter.reference_high, ...values) : Math.max(...values, 1);
+  const span = rawMax - rawMin || 1;
+  const { domain, ticks, decimals } = niceDomainAndTicks(rawMin - span * 0.1, rawMax + span * 0.1);
 
   return (
     <div className="flex flex-col gap-6">
@@ -56,11 +92,13 @@ export default function ParameterDetail() {
                 <CartesianGrid stroke="#E2E5DF" vertical={false} />
                 <XAxis dataKey="dateLabel" tick={{ fontSize: 11, fill: "#6B7370" }} axisLine={{ stroke: "#E2E5DF" }} tickLine={false} />
                 <YAxis
-                  domain={[yMin - pad, yMax + pad]}
+                  domain={domain}
+                  ticks={ticks}
+                  tickFormatter={(v) => formatTick(v, decimals)}
                   tick={{ fontSize: 11, fill: "#6B7370" }}
                   axisLine={false}
                   tickLine={false}
-                  width={40}
+                  width={48}
                 />
                 {hasRange && (
                   <ReferenceArea

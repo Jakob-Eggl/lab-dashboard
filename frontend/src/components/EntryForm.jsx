@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { X, Plus } from "lucide-react";
+import { X } from "lucide-react";
 import { api } from "../api";
+import ParameterPicker from "./ParameterPicker";
 
 export default function EntryForm() {
   const { id } = useParams();
@@ -13,7 +14,6 @@ export default function EntryForm() {
   const [labName, setLabName] = useState("");
   const [note, setNote] = useState("");
   const [rows, setRows] = useState([]); // { parameter_code, value }
-  const [pickerCode, setPickerCode] = useState("");
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -22,23 +22,21 @@ export default function EntryForm() {
   }, []);
 
   useEffect(() => {
-    if (!isEdit) return;
+    if (!isEdit || parameters.length === 0) return;
+    const computedCodes = new Set(parameters.filter((p) => p.computed).map((p) => p.code));
     api.getEntries().then((entries) => {
       const entry = entries.find((e) => String(e.id) === String(id));
       if (!entry) return;
       setEntryDate(entry.entry_date);
       setLabName(entry.lab_name || "");
       setNote(entry.note || "");
-      setRows(entry.measurements.map((m) => ({ parameter_code: m.parameter_code, value: String(m.value) })));
+      setRows(
+        entry.measurements
+          .filter((m) => !computedCodes.has(m.parameter_code)) // BMI etc. is recomputed automatically
+          .map((m) => ({ parameter_code: m.parameter_code, value: String(m.value) }))
+      );
     }).catch((e) => setError(e.message));
-  }, [id, isEdit]);
-
-  const byCategory = useMemo(() => {
-    return parameters.reduce((acc, p) => {
-      (acc[p.category] = acc[p.category] || []).push(p);
-      return acc;
-    }, {});
-  }, [parameters]);
+  }, [id, isEdit, parameters]);
 
   const usedCodes = new Set(rows.map((r) => r.parameter_code));
   const paramByCode = useMemo(() => Object.fromEntries(parameters.map((p) => [p.code, p])), [parameters]);
@@ -46,7 +44,6 @@ export default function EntryForm() {
   function addRow(code) {
     if (!code || usedCodes.has(code)) return;
     setRows((r) => [...r, { parameter_code: code, value: "" }]);
-    setPickerCode("");
   }
 
   function updateRowValue(code, value) {
@@ -149,24 +146,12 @@ export default function EntryForm() {
         )}
 
         <div className="flex items-center gap-2 mt-1">
-          <select
-            value={pickerCode}
-            onChange={(e) => addRow(e.target.value)}
-            className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
-          >
-            <option value="">Parameter hinzufügen…</option>
-            {Object.entries(byCategory).map(([cat, params]) => (
-              <optgroup key={cat} label={cat}>
-                {params.map((p) => (
-                  <option key={p.code} value={p.code} disabled={usedCodes.has(p.code)}>
-                    {p.name}{usedCodes.has(p.code) ? " (bereits hinzugefügt)" : ""}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <Plus size={18} className="text-muted shrink-0" />
+          <ParameterPicker parameters={parameters} usedCodes={usedCodes} onPick={addRow} />
         </div>
+      </div>
+
+      <div className="rounded-lg bg-accent-light px-3 py-2 text-xs text-accent-dark">
+        Tipp: Trag <strong>Größe</strong> und <strong>Gewicht</strong> zusammen in einem Eintrag ein — der BMI wird dann automatisch berechnet.
       </div>
 
       <label className="flex flex-col gap-1.5 text-sm">

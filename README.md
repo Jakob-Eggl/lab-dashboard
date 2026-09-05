@@ -13,15 +13,37 @@ maßgeblich ist immer der auf deinem tatsächlichen Befund angegebene Bereich.
 ## Was ist schon drin
 
 - Manuelle Eingabe von Befunden (Datum, Labor, beliebig viele Parameter)
-- ~30 gängige Laborparameter vorkonfiguriert (Leber, Niere, Blutfette,
-  Blutzucker, Schilddrüse, Blutbild, Elektrolyte, Eisenhaushalt, Vitamine)
+- **75 Laborparameter** vorkonfiguriert: Leber, Niere, Blutfette, Blutzucker,
+  Schilddrüse, Blutbild (inkl. Differenzialblutbild), Elektrolyte,
+  Eisenhaushalt, Vitamine, Spurenelemente, Gerinnung, Hormone, Muskel & Herz,
+  Pankreas, Entzündung/Immunsystem, Körpermaße
+- **Körpergröße & Gewicht eintragbar, BMI wird automatisch berechnet**, sobald
+  beide Werte im selben Eintrag vorhanden sind
+- Durchsuchbare Parameterauswahl beim Eintragen (kein unübersichtliches
+  Dropdown mehr)
 - Dashboard mit Statusfarben (im Bereich / erhöht / erniedrigt)
-- Verlaufsdiagramm pro Parameter mit eingezeichnetem Referenzbereich
+- Verlaufsdiagramm pro Parameter mit eingezeichnetem Referenzbereich, sauber
+  gerundeten Achsenwerten
 - Infotext je Parameter: was er ist, was erhöhte/niedrige Werte bedeuten können
+- **Referenzbereiche individuell überschreibbar** unter Einstellungen →
+  Referenzbereiche — z. B. wenn dein Labor andere Grenzwerte verwendet als
+  die hinterlegten Standardwerte. Ein "Zurücksetzen"-Button stellt den
+  Standardwert wieder her.
 - Referenzbereiche alters-/geschlechtsabhängig, wo relevant (z. B. Hämoglobin,
-  Ferritin, Harnsäure)
+  Ferritin, Harnsäure, Testosteron)
+- **Vollständiger Export/Import als JSON-Backup** unter Einstellungen → Daten
 - Mobile-optimierte Oberfläche (Bottom-Nav auf dem Handy, Seitenleiste am Desktop)
 - Alle Daten in einer lokalen SQLite-Datei in einem Docker-Volume
+
+## Zum Thema "globale Referenzwerte automatisch abrufen"
+
+Es gibt keine verlässliche, strukturierte öffentliche Quelle, die Referenzbereiche
+je Labor/Alter/Geschlecht liefert — jedes Labor kalibriert seine Geräte leicht
+unterschiedlich, und die Werte stehen meist nur als Text auf den Befunden selbst.
+Der praktikable Weg: **Einstellungen → Referenzbereiche** — dort siehst du pro
+Parameter den hinterlegten Standardwert und kannst ihn mit dem exakten Bereich
+von deinem Arzt/Labor überschreiben. Diese eigenen Werte werden dann überall
+im Dashboard verwendet (Statusfarben, Diagramm-Referenzbereich, etc.).
 
 ## Noch nicht drin (bewusst erstmal weggelassen)
 
@@ -29,8 +51,9 @@ maßgeblich ist immer der auf deinem tatsächlichen Befund angegebene Bereich.
   darauf vorbereitet (`Entry.photo_path`), aber der Baustein selbst kommt in
   einem zweiten Schritt, sobald das Kern-Dashboard bei dir läuft und passt.
 - Automatischer Online-Abgleich von Referenzbereichen. Stattdessen liegt eine
-  kuratierte Liste in `backend/app/parameters_data.py`, die du bei Bedarf
-  direkt anpassen/erweitern kannst (siehe unten).
+  kuratierte Liste in `backend/app/parameters_data.py`, plus die
+  benutzerfreundliche Override-Funktion unter Einstellungen → Referenzbereiche
+  (siehe oben).
 
 ## Deployment auf Proxmox/Portainer
 
@@ -69,7 +92,14 @@ docker compose up -d --build
 
 ### Backup
 
-Alle Daten liegen im Docker-Volume `labor-data` (SQLite-Datei). Backup z. B. so:
+**Empfohlen:** In der App unter Einstellungen → Daten → "Alle Daten exportieren"
+— lädt eine JSON-Datei mit allen Einträgen, Einstellungen und angepassten
+Referenzbereichen herunter. Über "Backup wiederherstellen" auf derselben Seite
+lässt sie sich auch wieder komplett einspielen (ersetzt dabei alle aktuellen
+Daten, mit Sicherheitsabfrage).
+
+Alternativ liegen alle Daten ohnehin im Docker-Volume `labor-data` (SQLite-Datei),
+falls du lieber auf Dateisystemebene sichern willst:
 
 ```bash
 docker run --rm -v labor-dashboard_labor-data:/data -v $(pwd):/backup \
